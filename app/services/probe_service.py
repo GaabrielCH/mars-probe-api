@@ -1,7 +1,9 @@
 import uuid
 
+from sqlalchemy.orm import Session
+
 from app.models.probe import Direction, Probe
-from app.storage import memory
+from app.storage import repository
 
 TURN_LEFT = {
     Direction.NORTH: Direction.WEST,
@@ -27,23 +29,23 @@ MOVE_DELTA = {
 VALID_COMMANDS = {"M", "L", "R"}
 
 
-def launch_probe(grid_x: int, grid_y: int, direction: Direction) -> Probe:
+def launch_probe(session: Session, grid_x: int, grid_y: int, direction: Direction) -> Probe:
     probe = Probe(
         id=str(uuid.uuid4())[:8],
         x=0,
         y=0,
         direction=direction,
     )
-    memory.save_probe(probe, grid_x, grid_y)
+    repository.save_probe(session, probe, grid_x, grid_y)
     return probe
 
 
-def move_probe(probe_id: str, commands: str) -> Probe:
-    probe = memory.get_probe(probe_id)
+def move_probe(session: Session, probe_id: str, commands: str) -> Probe:
+    probe = repository.get_probe(session, probe_id)
     if probe is None:
         raise ProbeNotFoundError(probe_id)
 
-    grid = memory.get_grid(probe_id)
+    grid = repository.get_grid(session, probe_id)
 
     invalid = [c for c in commands.upper() if c not in VALID_COMMANDS]
     if invalid:
@@ -67,12 +69,12 @@ def move_probe(probe_id: str, commands: str) -> Probe:
             x, y = new_x, new_y
 
     updated_probe = probe.model_copy(update={"x": x, "y": y, "direction": direction})
-    memory.update_probe(updated_probe)
+    repository.update_probe(session, updated_probe)
     return updated_probe
 
 
-def get_all_probes() -> list[Probe]:
-    return memory.get_all_probes()
+def get_all_probes(session: Session) -> list[Probe]:
+    return repository.get_all_probes(session)
 
 
 def _is_within_bounds(x: int, y: int, grid: tuple[int, int]) -> bool:
