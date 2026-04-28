@@ -1,0 +1,25 @@
+[project]
+name = "mars-probe-api"
+version = "1.0.0"
+description = "API to control probes on Mars"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn>=0.30.0",
+    "pydantic>=2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
