@@ -28,12 +28,12 @@ def move(probe_id: str, body: MoveProbeRequest, session: Session = Depends(get_s
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Probe not found")
     except InvalidCommandError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid commands: {e.invalid_commands}",
         )
     except OutOfBoundsError as e:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Movement would take probe out of bounds at ({e.x}, {e.y})",
         )
 

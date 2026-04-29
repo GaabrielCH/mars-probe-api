@@ -5,11 +5,15 @@ API REST para controlar sondas exploratórias em Marte. As sondas navegam em um 
 ## Requisitos
 
 - Python 3.11+
-- pip
+- [uv](https://github.com/astral-sh/uv) (recomendado) ou pip
 
 ## Instalação
 
 ```bash
+# com uv (recomendado)
+uv sync
+
+# ou com pip
 pip install -e ".[dev]"
 ```
 
@@ -34,10 +38,12 @@ pytest
 docker compose up --build
 ```
 
+A API ficará disponível em `http://localhost:8000`.
+
 ## Endpoints
 
 ### POST /probes
-Lança uma sonda nova e define o tamanho da malha.
+Lança uma sonda e define o tamanho da malha.
 
 ```json
 {
@@ -47,9 +53,9 @@ Lança uma sonda nova e define o tamanho da malha.
 }
 ```
 
-A sonda sempre inicia em `(0, 0)`. Os valores `x` e `y` representam o canto superior direito da malha.
+A sonda sempre inicia em `(0, 0)`. Os valores `x` e `y` representam o canto superior direito da malha disponível.
 
-**Resposta:**
+**Resposta (201):**
 ```json
 {
     "id": "abc123",
@@ -59,8 +65,10 @@ A sonda sempre inicia em `(0, 0)`. Os valores `x` e `y` representam o canto supe
 }
 ```
 
+---
+
 ### PATCH /probes/{id}/commands
-Envia uma sequência de comandos para a sonda.
+Envia uma sequência de comandos para mover a sonda.
 
 ```json
 {
@@ -70,12 +78,12 @@ Envia uma sequência de comandos para a sonda.
 
 Comandos disponíveis:
 - `M` — move 1 espaço na direção atual
-- `L` — rotaciona 90° para a esquerda
-- `R` — rotaciona 90° para a direita
+- `L` — rotaciona 90° para a esquerda (sem se mover)
+- `R` — rotaciona 90° para a direita (sem se mover)
 
-Comandos são case-insensitive. Se qualquer comando for inválido, ou se algum movimento ultrapassar os limites da malha, a sonda não executa nenhum comando e um erro é retornado.
+Os comandos são case-insensitive. Se qualquer comando for inválido, ou se o movimento ultrapassar os limites da malha, **nenhum comando é executado** e um erro é retornado.
 
-**Resposta:**
+**Resposta (200):**
 ```json
 {
     "id": "abc123",
@@ -85,10 +93,16 @@ Comandos são case-insensitive. Se qualquer comando for inválido, ou se algum m
 }
 ```
 
+**Erros:**
+- `404` — sonda não encontrada
+- `422` — comando inválido ou movimento fora dos limites da malha
+
+---
+
 ### GET /probes
 Retorna o estado atual de todas as sondas.
 
-**Resposta:**
+**Resposta (200):**
 ```json
 {
     "probes": [
@@ -97,6 +111,12 @@ Retorna o estado atual de todas as sondas.
             "x": 1,
             "y": 1,
             "direction": "EAST"
+        },
+        {
+            "id": "xyzbas1234",
+            "x": 3,
+            "y": 4,
+            "direction": "NORTH"
         }
     ]
 }
@@ -106,17 +126,30 @@ Retorna o estado atual de todas as sondas.
 
 ```
 app/
-  main.py            ponto de entrada da aplicação
-  routers/
-    probes.py        endpoints HTTP
+  main.py                ponto de entrada da aplicação
   models/
-    probe.py         schemas e enums
+    probe.py             schemas Pydantic e enums (Direction, Probe, requests)
+  routers/
+    probes.py            endpoints HTTP
   services/
-    probe_service.py lógica de negócio e erros de domínio
+    probe_service.py     lógica de negócio e exceções de domínio
   storage/
-    memory.py        armazenamento em memória
+    database.py          configuração SQLAlchemy e get_session
+    models.py            modelo ORM (ProbeRecord)
+    repository.py        acesso ao banco de dados
+    memory.py            implementação alternativa em memória
 tests/
-  test_launch.py
-  test_movement.py
-  test_status.py
+  conftest.py            fixture com SQLite in-memory para testes isolados
+  test_launch.py         testes do endpoint de lançamento
+  test_movement.py       testes de movimento e validações
+  test_status.py         testes do endpoint de listagem
 ```
+
+## Tecnologias
+
+- **FastAPI** — framework web
+- **SQLAlchemy** — ORM com SQLite para persistência
+- **Pydantic** — validação de dados e schemas
+- **uv** — gerenciamento de dependências
+- **pytest** — testes automatizados
+- **Docker** — containerização
